@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, Button } from 'antd'
-import { getHistoryList, deleteHistory } from '@/services/api'
-import { getConfig } from '@/services/request'
-import type { HistoryItem } from '@/types'
+import { getHistoryList, deleteHistory } from '@/core/services/api'
+import { getConfig } from '@/core/services/request'
+import type { HistoryItem } from '@/core/types'
 
 import addImg from '@/assets/image/add.png'
 import addsImg from '@/assets/image/adds.png'

@@ -1,6 +1,6 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import AiAssistSdk from '@/index'
+import AiAssistSdk from '@/react/index'
 
 AiAssistSdk.initAiAssist({
   name: '财务AI员工',
@@ -27,7 +27,7 @@ AiAssistSdk.mountAiAssist()
 
 const App = () => (
   <div style={{ padding: 40, fontFamily: 'sans-serif' }}>
-    <h1>AI Assist SDK Demo</h1>
+    <h1>AI Assist SDK Demo (React)</h1>
     <p>右下角浮动球已加载，点击即可打开AI助手面板</p>
   </div>
 )

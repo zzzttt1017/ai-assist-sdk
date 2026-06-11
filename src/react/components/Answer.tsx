@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
-import DOMPurify from 'dompurify'
-import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
-import markdownItHighlightjs from 'markdown-it-highlightjs'
-import markdownItMultimdTable from 'markdown-it-multimd-table'
-import { getConfig, createAuthAxios } from '@/services/request'
-import { createConversation, sendMessage as sendMessageApi, stopReply, getConversationMessages } from '@/services/api'
-import { useClipboard, statusText, formatQuestions, textError, processSSEData, parseSSEData } from '@/utils'
-import type { ChatMessage, MessageStatus, AiAssistConfig } from '@/types'
+import { getConfig, createAuthAxios } from '@/core/services/request'
+import { createConversation, sendMessage as sendMessageApi, stopReply, getConversationMessages } from '@/core/services/api'
+import { useClipboard, statusText, formatQuestions, textError, processSSEData, parseSSEData } from '@/core/utils'
+import { renderMarkdown } from '@/core/utils/markdown'
+import type { ChatMessage, MessageStatus, AiAssistConfig } from '@/core/types'
 
 import refreshImg from '@/assets/image/refresh.png'
 import startImg from '@/assets/image/start.png'
@@ -23,24 +19,6 @@ const STATUS = {
   COMPLETED: 'completed' as MessageStatus,
   STOP: 'stop' as MessageStatus,
   ERROR: 'error' as MessageStatus,
-}
-
-const md = new MarkdownIt({
-  html: true,
-  linkify: true,
-  typographer: true,
-  breaks: true,
-})
-  .use(markdownItHighlightjs, { auto: true, code: true, inline: true, hljs })
-  .use(markdownItMultimdTable, { multiline: true, rowspan: true, headerless: false })
-
-const renderMarkdown = (content: string): string => {
-  const rawHtml = md.render(content || '')
-  return DOMPurify.sanitize(rawHtml, {
-    ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','pre','code','span','div','strong','em','a','img','ul','ol','li','p','blockquote','table','thead','tbody','tr','th','td'],
-    ALLOWED_ATTR: ['href','src','alt','class','target','colspan','rowspan','style'],
-    FORCE_BODY: true,
-  })
 }
 
 interface AnswerProps {

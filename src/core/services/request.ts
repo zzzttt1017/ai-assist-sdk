@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AiAssistConfig } from '@/types'
+import type { AiAssistConfig } from '@/core/types'
 
 let config: AiAssistConfig | null = null
 

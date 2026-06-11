@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { getPersonalInfo } from '@/services/api'
-import { getConfig } from '@/services/request'
-import type { PersonalInfo } from '@/types'
+import { getPersonalInfo } from '@/core/services/api'
+import { getConfig } from '@/core/services/request'
+import type { PersonalInfo } from '@/core/types'
 
 const Info: React.FC = () => {
   const cfg = getConfig()

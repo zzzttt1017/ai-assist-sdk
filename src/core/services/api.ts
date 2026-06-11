@@ -1,6 +1,6 @@
 import { http, createAuthAxios, getConfig } from './request'
 import version from './version'
-import type { AiAssistConfig, PersonalInfo } from '@/types'
+import type { AiAssistConfig, PersonalInfo } from '@/core/types'
 
 export const createConversation = async (apis: AiAssistConfig['apis']) => {
   if (!apis.createaconversationApi) return

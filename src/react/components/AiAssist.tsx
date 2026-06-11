@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Answer, { AnswerRef } from './Answer'
 import History from './History'
 import Info from './Info'
-import { getConfig } from '@/services/request'
-import type { ViewStatus } from '@/types'
+import { getConfig } from '@/core/services/request'
+import type { ViewStatus } from '@/core/types'
 
 import sparkleImg from '@/assets/image/sparkle.png'
 import historyImg from '@/assets/image/history.png'
@@ -54,7 +54,7 @@ const AiAssist: React.FC = () => {
 
   const recyclePosition = useCallback(() => {
     const screenWidth = window.innerWidth
-    let targetY = Math.max(0, Math.min(characterPosition.y, window.innerHeight - CHAR_HEIGHT))
+    const targetY = Math.max(0, Math.min(characterPosition.y, window.innerHeight - CHAR_HEIGHT))
     const charCenterX = characterPosition.x + HALF_CHAR_WIDTH
     const targetX = charCenterX >= screenWidth / 2
       ? screenWidth - HALF_CHAR_WIDTH
@@ -105,8 +105,8 @@ const AiAssist: React.FC = () => {
     if (!isDragging) return
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-    let newX = clientX - dragStartRef.current.x
-    let newY = Math.max(0, Math.min(clientY - dragStartRef.current.y, window.innerHeight - CHAR_HEIGHT))
+    const newX = clientX - dragStartRef.current.x
+    const newY = Math.max(0, Math.min(clientY - dragStartRef.current.y, window.innerHeight - CHAR_HEIGHT))
     const dx = Math.abs(newX - characterPosition.x)
     const dy = Math.abs(newY - characterPosition.y)
     if (dx + dy > 5) hasDraggedRef.current = true

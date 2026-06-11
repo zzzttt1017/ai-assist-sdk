@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import vue from '@vitejs/plugin-vue'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import dts from 'vite-plugin-dts'
@@ -10,7 +11,23 @@ const __dirname = dirname(__filename)
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    dts({ insertTypesEntry: true }),
+    vue(),
+    dts({
+      insertTypesEntry: true,
+      include: [
+        'src/core/**/*.ts',
+        'src/react/**/*.ts',
+        'src/react/**/*.tsx',
+        'src/vue/**/*.ts',
+        'src/index.ts',
+        'src/vite-env.d.ts',
+      ],
+      exclude: [
+        'src/vue/**/*.vue',
+      ],
+      entryRoot: 'src',
+      outDir: 'dist',
+    }),
   ],
   resolve: {
     alias: {
@@ -27,20 +44,28 @@ export default defineConfig(({ mode }) => ({
   build: mode === 'lib'
     ? {
         lib: {
-          entry: resolve(__dirname, 'src/index.ts'),
-          name: 'AiAssistSdk',
-          fileName: 'ai-assist-sdk',
-          formats: ['umd', 'es'],
+          entry: {
+            index: resolve(__dirname, 'src/index.ts'),
+            'react/index': resolve(__dirname, 'src/react/index.ts'),
+            'vue/index': resolve(__dirname, 'src/vue/index.ts'),
+          },
+          formats: ['es'],
         },
         rollupOptions: {
-          external: ['react', 'react-dom'],
+          external: ['react', 'react-dom', 'vue', 'antd', '@ant-design/icons'],
           output: {
             globals: {
               react: 'React',
               'react-dom': 'ReactDOM',
+              vue: 'Vue',
+              antd: 'antd',
+              '@ant-design/icons': 'antdIcons',
             },
+            entryFileNames: '[name].mjs',
+            chunkFileNames: 'chunks/[name]-[hash].mjs',
           },
         },
+        cssCodeSplit: false,
       }
     : {
         outDir: 'dist',

@@ -34,7 +34,7 @@ export const extractPlainText = (html: string): string => {
   return text.replace(/\s+/g, ' ').trim()
 }
 
-import type { MessageStatus } from '@/types'
+import type { MessageStatus } from '@/core/types'
 
 const STATUS_MAP: Record<MessageStatus, string> = {
   thinking: '正在思考中',
@@ -101,3 +101,5 @@ export const parseSSEData = (sseData: string): string => {
   })
   return markdownContent
 }
+
+export { renderMarkdown } from './markdown'

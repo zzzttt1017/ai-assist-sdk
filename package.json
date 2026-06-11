@@ -2,8 +2,31 @@
   "name": "ai-assist-sdk",
   "version": "1.0.0",
   "type": "module",
+  "description": "财务AI助手 SDK — 支持 React 和 Vue3 的可嵌入AI对话组件",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs"
+    },
+    "./vue": {
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.mjs"
+    },
+    "./styles": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --open /",
+    "dev:vue": "vite --open /index-vue.html",
     "build": "vite build",
     "build:lib": "vite build --mode lib",
     "preview": "vite preview"
@@ -17,9 +40,23 @@
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
     "markdown-it-highlightjs": "^4.2.0",
-    "markdown-it-multimd-table": "^4.2.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "markdown-it-multimd-table": "^4.2.3"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0",
+    "vue": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/dompurify": "^3.2.0",
@@ -28,9 +65,13 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.0",
+    "@vitejs/plugin-vue": "^5.0.0",
     "less": "^4.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "typescript": "^5.8.0",
     "vite": "^6.3.0",
-    "vite-plugin-dts": "^4.5.0"
+    "vite-plugin-dts": "^4.5.0",
+    "vue": "^3.4.0"
   }
 }
