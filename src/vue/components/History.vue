@@ -84,7 +84,7 @@ onMounted(() => {
 })
 </script>
 
-<style>
+<style scoped>
 .ai-modal-overlay {
   position: fixed;
   top: 0;
