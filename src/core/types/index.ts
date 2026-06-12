@@ -2,24 +2,29 @@ export interface AiAssistConfig {
   name?: string
   baseUrl: string
   token: string
-  appKey: string
+  appKey?: string
   defaultSayhello?: {
     text1: string
     text2: string
   }
   defaultRecommend?: string[]
   apis: {
-    sayhelloApi?: string
-    recommendApi?: string
-    replyApi: string
-    againreplyApi?: string
-    setopreplyApi?: string
-    historyApi?: string
-    deletehistoryApi?: string
-    historynameApi?: string
-    createaconversationApi?: string
-    conversationmessagesApi?: string
-    personalInfoApi?: string
+    // 对话
+    chatQueryApi: string
+    chatQueryStreamApi?: string
+    queryAgainApi?: string
+    queryAgainStreamApi?: string
+    stopMessageApi?: string
+    // 会话管理
+    createConversationApi?: string
+    getConversationListApi?: string
+    getConversationMessagesApi?: string
+    deleteConversationApi?: string
+    // 其他
+    getSuggestedQuestionsApi?: string
+    getMessageInfoApi?: string
+    getAppConfigApi?: string
+    getPersonalInfoApi?: string
   }
 }
 

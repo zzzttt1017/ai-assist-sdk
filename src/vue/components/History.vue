@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getHistoryList, deleteHistory } from '@/core/services/api'
+import { getConversationList, deleteConversation } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
 import type { HistoryItem } from '@/core/types'
 
@@ -59,8 +59,8 @@ const historyList = ref<HistoryItem[]>([])
 const dialogVisible = ref(false)
 const deleteId = ref('')
 
-async function getConversationList() {
-  const result = await getHistoryList(apis)
+async function getList() {
+  const result = await getConversationList(apis)
   if (result?.conversationList) {
     historyList.value = result.conversationList
       .filter((item: any) => item !== null)
@@ -75,12 +75,12 @@ function handleClear(id: string) {
 
 async function handleDelete() {
   dialogVisible.value = false
-  await deleteHistory(apis, deleteId.value)
-  await getConversationList()
+  await deleteConversation(apis, deleteId.value)
+  await getList()
 }
 
 onMounted(() => {
-  getConversationList()
+  getList()
 })
 </script>
 

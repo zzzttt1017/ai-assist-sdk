@@ -1,74 +1,98 @@
-import { http, createAuthAxios, getConfig } from './request'
+import { http, createAuthAxios } from './request'
 import version from './version'
 import type { AiAssistConfig, PersonalInfo } from '@/core/types'
 
+// ==================== 会话管理 ====================
+
 export const createConversation = async (apis: AiAssistConfig['apis']) => {
-  if (!apis.createaconversationApi) return
-  const result = await http.post(apis.createaconversationApi, '')
+  if (!apis.createConversationApi) return
+  const result = await http.post(apis.createConversationApi, version({}))
   return result
+}
+
+export const getConversationList = async (apis: AiAssistConfig['apis']) => {
+  if (!apis.getConversationListApi) return null
+  const result = await http.post(apis.getConversationListApi, version({}))
+  return result
+}
+
+export const deleteConversation = async (
+  apis: AiAssistConfig['apis'],
+  appConversationId: string
+) => {
+  if (!apis.deleteConversationApi) return
+  await http.post(apis.deleteConversationApi, version({
+    AppConversationID: appConversationId,
+  }))
 }
 
 export const getConversationMessages = async (
   apis: AiAssistConfig['apis'],
   appConversationId: string
 ) => {
-  if (!apis.conversationmessagesApi) return null
+  if (!apis.getConversationMessagesApi) return null
   const authAxios = createAuthAxios()
-  const res = await authAxios.post(apis.conversationmessagesApi, {
+  const res = await authAxios.post(apis.getConversationMessagesApi, version({
     AppConversationID: appConversationId,
-    AppKey: getConfig().appKey,
     Limit: 100,
-  })
+  }))
   return res.data
 }
 
-export const sendMessage = async (
+// ==================== 对话 ====================
+
+/** 发送消息（非流式） */
+export const chatQuery = async (
   apis: AiAssistConfig['apis'],
-  text: string,
-  appConversationId: string,
-  token: string
+  query: string,
+  appConversationId: string
 ) => {
   const authAxios = createAuthAxios()
-  const data = {
-    Query: text,
+  const res = await authAxios.post(apis.chatQueryApi, version({
+    Query: query,
     AppConversationID: appConversationId,
-    AppKey: getConfig().appKey,
-    QueryExtends: { Files: [] },
-  }
-  const res = await authAxios.post(apis.replyApi, data, {
-    headers: { Accept: 'text/html' },
-  })
+  }))
   return res.data
 }
 
-export const stopReply = async (
+/** 停止回复 */
+export const stopMessage = async (
   apis: AiAssistConfig['apis'],
   messageId: string,
-  userId: string
 ) => {
-  if (!apis.setopreplyApi) return
-  await http.post(apis.setopreplyApi, version({
+  if (!apis.stopMessageApi) return
+  await http.post(apis.stopMessageApi, version({
     MessageID: messageId,
-    UserID: userId,
   }))
 }
 
-export const getHistoryList = async (apis: AiAssistConfig['apis']) => {
-  if (!apis.historyApi) return null
-  const result = await http.post(apis.historyApi, 279)
-  return result
+// ==================== 其他 ====================
+
+export const getSuggestedQuestions = async (apis: AiAssistConfig['apis']) => {
+  if (!apis.getSuggestedQuestionsApi) return null
+  const res = await http.post(apis.getSuggestedQuestionsApi, version({}))
+  return res
 }
 
-export const deleteHistory = async (
+export const getMessageInfo = async (
   apis: AiAssistConfig['apis'],
-  appConversationId: string
+  messageId: string
 ) => {
-  if (!apis.deletehistoryApi) return
-  await http.post(apis.deletehistoryApi, { appConversationID: appConversationId })
+  if (!apis.getMessageInfoApi) return null
+  const res = await http.post(apis.getMessageInfoApi, version({
+    MessageID: messageId,
+  }))
+  return res?.data
+}
+
+export const getAppConfig = async (apis: AiAssistConfig['apis']) => {
+  if (!apis.getAppConfigApi) return null
+  const res = await http.post(apis.getAppConfigApi, version({}))
+  return res?.data
 }
 
 export const getPersonalInfo = async (apis: AiAssistConfig['apis']): Promise<PersonalInfo | null> => {
-  if (!apis.personalInfoApi) return null
-  const res = await http.post(apis.personalInfoApi)
+  if (!apis.getPersonalInfoApi) return null
+  const res = await http.post(apis.getPersonalInfoApi, version({}))
   return res?.data
 }

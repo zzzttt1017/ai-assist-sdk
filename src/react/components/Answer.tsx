@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { getConfig, createAuthAxios } from '@/core/services/request'
-import { createConversation, sendMessage as sendMessageApi, stopReply, getConversationMessages } from '@/core/services/api'
+import { createConversation, stopMessage, getConversationMessages } from '@/core/services/api'
 import { useClipboard, statusText, formatQuestions, textError, processSSEData, parseSSEData } from '@/core/utils'
 import { renderMarkdown } from '@/core/utils/markdown'
 import type { ChatMessage, MessageStatus, AiAssistConfig } from '@/core/types'
@@ -44,7 +44,6 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
   const [sayData, setSayData] = useState({ text1: '', text2: '' })
   const [recommendations, setRecommendations] = useState<string[][]>([])
   const [currentRecIndex, setCurrentRecIndex] = useState(0)
-  const [messageID, setMessageID] = useState<string>()
 
   const chatBoxRef = useRef<HTMLDivElement>(null)
   const streamBufferRef = useRef(new Map<number, string>())
@@ -124,85 +123,30 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
     } catch {}
   }
 
-  const sendMessage = async () => {
-    const text = userInput.trim()
-    if (!text || isGenerating) return
+  // 获取可用的流式 API 地址，优先流式，降级非流式
+  const getStreamApi = () => apis.chatQueryStreamApi || apis.chatQueryApi
+  const getAgainStreamApi = () => apis.queryAgainStreamApi || apis.queryAgainApi || apis.chatQueryStreamApi || apis.chatQueryApi
 
-    const newMessages: ChatMessage[] = [
-      ...messages,
-      { type: 'user', content: text },
-      { type: 'ai', content: '', status: STATUS.THINKING },
-    ]
-    setMessages(newMessages)
-    setUserInput('')
-    scrollToBottom()
-
-    const id = conversationIdRef.current
-    const authAxios = createAuthAxios()
-    const data = {
-      Query: text,
-      AppConversationID: id,
-      AppKey: cfg.appKey,
-      QueryExtends: { Files: [] },
-    }
-
-    try {
-      const res = await authAxios.post(apis.replyApi, data, {
-        headers: { Accept: 'text/html' },
-      })
-      const sseData = processSSEData(res.data)
-      const contentData = parseSSEData(sseData)
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { type: 'ai', content: contentData, status: STATUS.COMPLETED }
-        return updated
-      })
-    } catch {
-      setMessages(prev => {
-        const updated = [...prev]
-        updated[updated.length - 1] = { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
-        return updated
-      })
-    }
-  }
-
-  const regenerateResponse = async () => {
-    if (!lastUserMessage || isGenerating) return
-    setMessages(prev => {
-      const updated = [...prev]
-      if (updated.length > 0 && updated[updated.length - 1].type === 'ai') {
-        updated.pop()
-      }
-      updated.push({ type: 'ai', content: '', status: STATUS.RETHINKING })
-      return updated
-    })
-    scrollToBottom()
-    await againSendMessageReply(lastUserMessage)
-  }
-
-  const againSendMessageReply = async (textID: string) => {
-    const aiIndex = messages.length
+  /** 建立 SSE 流式请求的通用方法 */
+  const doStreamRequest = async (
+    apiUrl: string,
+    bodyData: Record<string, any>,
+    aiIndex: number,
+    signal: AbortSignal,
+    isRetry = false,
+  ) => {
     issTopRef.current = false
     streamBufferRef.current.set(aiIndex, '')
     setIsGenerating(true)
 
     try {
-      await fetchEventSource(apis.againreplyApi || '', {
+      await fetchEventSource(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-auth-token': sessionStorage.getItem('token') || '',
         },
-        body: JSON.stringify({
-          app: 1,
-          data: {
-            MessageID: textID,
-            AppConversationID: conversationIdRef.current,
-            ResponseMode: 'streaming',
-            UserID: sessionStorage.getItem('username') || '',
-          },
-        }),
-        signal: controllersRef.current.again.signal,
+        body: JSON.stringify({ data: bodyData }),
+        signal,
         openWhenHidden: true,
         onmessage(ev) {
           try {
@@ -211,7 +155,7 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
             const chunk = JSON.parse(dataStr)
             switch (chunk.event) {
               case 'message_start':
-                setLastUserMessage(chunk.id)
+                if (!isRetry) setLastUserMessage(chunk.id)
                 streamBufferRef.current.set(aiIndex, '')
                 break
               case 'message': {
@@ -253,7 +197,7 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
             if (updated[aiIndex] && updated[aiIndex].status !== STATUS.ERROR) {
               updated[aiIndex] = {
                 ...updated[aiIndex],
-                content: issTopRef.current && !buffer ? '停止回答' : buffer,
+                content: issTopRef.current && !buffer ? '已停止回答' : buffer,
                 status: issTopRef.current ? STATUS.STOP : STATUS.COMPLETED,
               }
             }
@@ -275,27 +219,109 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
         },
       })
     } catch {
+      if (!issTopRef.current) {
+        setMessages(prev => {
+          const updated = [...prev]
+          if (updated[aiIndex]) {
+            updated[aiIndex] = { ...updated[aiIndex], content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
+          }
+          return updated
+        })
+        setIsGenerating(false)
+      }
+    }
+  }
+
+  /** 发送消息：优先流式，降级非流式 */
+  const sendMessage = async () => {
+    const text = userInput.trim()
+    if (!text || isGenerating) return
+
+    const newMessages: ChatMessage[] = [
+      ...messages,
+      { type: 'user', content: text },
+      { type: 'ai', content: '', status: STATUS.THINKING },
+    ]
+    setMessages(newMessages)
+    setUserInput('')
+    scrollToBottom()
+
+    const id = conversationIdRef.current
+    const aiIndex = newMessages.length - 1
+
+    // 优先使用流式 API
+    if (apis.chatQueryStreamApi) {
+      await doStreamRequest(apis.chatQueryStreamApi, {
+        Query: text,
+        AppConversationID: id,
+        ResponseMode: 'streaming',
+      }, aiIndex, controllersRef.current.first.signal)
+      return
+    }
+
+    // 降级：非流式
+    try {
+      const authAxios = createAuthAxios()
+      const res = await authAxios.post(apis.chatQueryApi, {
+        data: { Query: text, AppConversationID: id },
+      })
+      const contentData = extractContent(res.data)
       setMessages(prev => {
         const updated = [...prev]
-        if (updated[aiIndex]) {
-          updated[aiIndex] = { ...updated[aiIndex], content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
-        }
+        updated[aiIndex] = { type: 'ai', content: contentData, status: STATUS.COMPLETED }
+        return updated
+      })
+    } catch {
+      setMessages(prev => {
+        const updated = [...prev]
+        updated[aiIndex] = { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
         return updated
       })
     }
   }
 
+  /** 从响应中提取文本内容 */
+  const extractContent = (data: any): string => {
+    if (typeof data === 'string') {
+      const sseData = processSSEData(data)
+      return parseSSEData(sseData) || data
+    }
+    return data?.answer || data?.data?.answer || String(data || '')
+  }
+
+  const regenerateResponse = async () => {
+    if (!lastUserMessage || isGenerating) return
+    setMessages(prev => {
+      const updated = [...prev]
+      if (updated.length > 0 && updated[updated.length - 1].type === 'ai') {
+        updated.pop()
+      }
+      updated.push({ type: 'ai', content: '', status: STATUS.RETHINKING })
+      return updated
+    })
+    scrollToBottom()
+
+    const aiIndex = messages.length
+    const againApi = getAgainStreamApi()
+
+    await doStreamRequest(againApi, {
+      MessageID: lastUserMessage,
+      AppConversationID: conversationIdRef.current,
+      ResponseMode: 'streaming',
+    }, aiIndex, controllersRef.current.again.signal, true)
+  }
+
   const toggleStop = async () => {
-    if (!apis.setopreplyApi || !isGenerating) return
+    if (!apis.stopMessageApi || !isGenerating) return
     const aiIndex = messages.length - 1
     try {
-      await stopReply(apis, lastUserMessage, sessionStorage.getItem('username') || '')
+      await stopMessage(apis, lastUserMessage)
       setMessages(prev => {
         const updated = [...prev]
         if (updated[aiIndex]) {
           updated[aiIndex] = {
             ...updated[aiIndex],
-            content: updated[aiIndex].content || '停止回答',
+            content: updated[aiIndex].content || '已停止回答',
             status: STATUS.STOP,
           }
         }

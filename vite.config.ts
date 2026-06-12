@@ -41,6 +41,16 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
+  server: {
+    proxy: {
+      '/API': {
+        target: 'https://goon.csci.com.hk/fis-api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/API/, ''),
+        secure: false,
+      },
+    },
+  },
   build: mode === 'lib'
     ? {
         lib: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Modal, Button } from 'antd'
-import { getHistoryList, deleteHistory } from '@/core/services/api'
+import { getConversationList, deleteConversation } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
 import type { HistoryItem } from '@/core/types'
 
@@ -22,8 +22,8 @@ const History: React.FC<HistoryProps> = ({ onHistoryDetail, onAnswer, onEditTitl
   const [centerDialogVisible, setCenterDialogVisible] = useState(false)
   const [deleteId, setDeleteId] = useState('')
 
-  const getConversationList = async () => {
-    const result = await getHistoryList(apis)
+  const getList = async () => {
+    const result = await getConversationList(apis)
     if (result?.conversationList) {
       const filtered = result.conversationList
         .filter((item: any) => item !== null)
@@ -39,8 +39,8 @@ const History: React.FC<HistoryProps> = ({ onHistoryDetail, onAnswer, onEditTitl
 
   const handleDelete = async () => {
     setCenterDialogVisible(false)
-    await deleteHistory(apis, deleteId)
-    await getConversationList()
+    await deleteConversation(apis, deleteId)
+    await getList()
   }
 
   const newCreateAconversation = () => {
@@ -49,7 +49,7 @@ const History: React.FC<HistoryProps> = ({ onHistoryDetail, onAnswer, onEditTitl
   }
 
   useEffect(() => {
-    getConversationList()
+    getList()
   }, [])
 
   return (

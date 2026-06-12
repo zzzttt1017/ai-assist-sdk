@@ -18,11 +18,14 @@ export {
 
 export {
   createConversation,
-  sendMessage,
-  stopReply,
-  getHistoryList,
-  deleteHistory,
+  getConversationList,
+  deleteConversation,
   getConversationMessages,
+  chatQuery,
+  stopMessage,
+  getSuggestedQuestions,
+  getMessageInfo,
+  getAppConfig,
   getPersonalInfo,
 } from './core/services/api'
 

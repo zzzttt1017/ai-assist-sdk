@@ -78,7 +78,7 @@
 import { ref, reactive, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { getConfig, createAuthAxios } from '@/core/services/request'
-import { createConversation, stopReply, getConversationMessages } from '@/core/services/api'
+import { createConversation, stopMessage, getConversationMessages } from '@/core/services/api'
 import { useClipboard, statusText, formatQuestions, processSSEData, parseSSEData } from '@/core/utils'
 import { renderMarkdown } from '@/core/utils/markdown'
 import type { ChatMessage, MessageStatus } from '@/core/types'
@@ -129,6 +129,14 @@ const currentRecommendations = computed(() =>
   recommendations.value[currentRecIndex.value % (recommendations.value.length || 1)]
 )
 
+function getStreamApi() {
+  return apis.chatQueryStreamApi || apis.chatQueryApi
+}
+
+function getAgainStreamApi() {
+  return apis.queryAgainStreamApi || apis.queryAgainApi || apis.chatQueryStreamApi || apis.chatQueryApi
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (chatBoxRef.value) {
@@ -161,70 +169,31 @@ function copyContent(msg: ChatMessage) {
   } catch {}
 }
 
-async function sendMessage() {
-  const text = userInput.value.trim()
-  if (!text || isGenerating.value) return
-
-  const newMessages: ChatMessage[] = [
-    ...messages.value,
-    { type: 'user', content: text },
-    { type: 'ai', content: '', status: STATUS.THINKING },
-  ]
-  messages.value = newMessages
-  userInput.value = ''
-  scrollToBottom()
-
-  const authAxios = createAuthAxios()
-  const data = {
-    Query: text,
-    AppConversationID: conversationId.value,
-    AppKey: cfg.appKey,
-    QueryExtends: { Files: [] },
+function extractContent(data: any): string {
+  if (typeof data === 'string') {
+    const sse = processSSEData(data)
+    return parseSSEData(sse) || data
   }
-
-  try {
-    const res = await authAxios.post(apis.replyApi, data, { headers: { Accept: 'text/html' } })
-    const sseData = processSSEData(res.data)
-    const contentData = parseSSEData(sseData)
-    messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: contentData, status: STATUS.COMPLETED }]
-  } catch {
-    messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }]
-  }
+  return data?.answer || data?.data?.answer || String(data || '')
 }
 
-async function regenerateResponse() {
-  if (!lastUserMessage.value || isGenerating.value) return
-  const updated = [...messages.value]
-  if (updated.length > 0 && updated[updated.length - 1].type === 'ai') updated.pop()
-  updated.push({ type: 'ai', content: '', status: STATUS.RETHINKING })
-  messages.value = updated
-  scrollToBottom()
-  await againSendMessageReply(lastUserMessage.value)
-}
-
-async function againSendMessageReply(textID: string) {
-  const aiIndex = messages.value.length
+async function doStreamRequest(
+  apiUrl: string,
+  bodyData: Record<string, any>,
+  aiIndex: number,
+  signal: AbortSignal,
+  isRetry = false,
+) {
   issTop.value = false
   streamBuffer.value.set(aiIndex, '')
   isGenerating.value = true
 
   try {
-    await fetchEventSource(apis.againreplyApi || '', {
+    await fetchEventSource(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-auth-token': sessionStorage.getItem('token') || '',
-      },
-      body: JSON.stringify({
-        app: 1,
-        data: {
-          MessageID: textID,
-          AppConversationID: conversationId.value,
-          ResponseMode: 'streaming',
-          UserID: sessionStorage.getItem('username') || '',
-        },
-      }),
-      signal: controllers.again.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: bodyData }),
+      signal,
       openWhenHidden: true,
       onmessage(ev) {
         try {
@@ -233,7 +202,7 @@ async function againSendMessageReply(textID: string) {
           const chunk = JSON.parse(dataStr)
           switch (chunk.event) {
             case 'message_start':
-              lastUserMessage.value = chunk.id
+              if (!isRetry) lastUserMessage.value = chunk.id
               streamBuffer.value.set(aiIndex, '')
               break
             case 'message': {
@@ -264,7 +233,7 @@ async function againSendMessageReply(textID: string) {
         if (msgs[aiIndex] && msgs[aiIndex].status !== STATUS.ERROR) {
           msgs[aiIndex] = {
             ...msgs[aiIndex],
-            content: issTop.value && !buffer ? '停止回答' : buffer,
+            content: issTop.value && !buffer ? '已停止回答' : buffer,
             status: issTop.value ? STATUS.STOP : STATUS.COMPLETED,
           }
         }
@@ -283,22 +252,79 @@ async function againSendMessageReply(textID: string) {
       },
     })
   } catch {
-    const msgs = [...messages.value]
-    if (msgs[aiIndex]) {
-      msgs[aiIndex] = { ...msgs[aiIndex], content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
+    if (!issTop.value) {
+      const msgs = [...messages.value]
+      if (msgs[aiIndex]) {
+        msgs[aiIndex] = { ...msgs[aiIndex], content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
+      }
+      messages.value = msgs
+      isGenerating.value = false
     }
-    messages.value = msgs
   }
 }
 
+async function sendMessage() {
+  const text = userInput.value.trim()
+  if (!text || isGenerating.value) return
+
+  const newMessages: ChatMessage[] = [
+    ...messages.value,
+    { type: 'user', content: text },
+    { type: 'ai', content: '', status: STATUS.THINKING },
+  ]
+  messages.value = newMessages
+  userInput.value = ''
+  scrollToBottom()
+
+  const aiIndex = newMessages.length - 1
+
+  // 优先流式
+  if (apis.chatQueryStreamApi) {
+    await doStreamRequest(apis.chatQueryStreamApi, {
+      Query: text,
+      AppConversationID: conversationId.value,
+      ResponseMode: 'streaming',
+    }, aiIndex, controllers.first.signal)
+    return
+  }
+
+  // 降级非流式
+  try {
+    const authAxios = createAuthAxios()
+    const res = await authAxios.post(apis.chatQueryApi, {
+      data: { Query: text, AppConversationID: conversationId.value },
+    })
+    const contentData = extractContent(res.data)
+    messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: contentData, status: STATUS.COMPLETED }]
+  } catch {
+    messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }]
+  }
+}
+
+async function regenerateResponse() {
+  if (!lastUserMessage.value || isGenerating.value) return
+  const updated = [...messages.value]
+  if (updated.length > 0 && updated[updated.length - 1].type === 'ai') updated.pop()
+  updated.push({ type: 'ai', content: '', status: STATUS.RETHINKING })
+  messages.value = updated
+  scrollToBottom()
+
+  const aiIndex = messages.value.length
+  await doStreamRequest(getAgainStreamApi(), {
+    MessageID: lastUserMessage.value,
+    AppConversationID: conversationId.value,
+    ResponseMode: 'streaming',
+  }, aiIndex, controllers.again.signal, true)
+}
+
 async function toggleStop() {
-  if (!apis.setopreplyApi || !isGenerating.value) return
+  if (!apis.stopMessageApi || !isGenerating.value) return
   const aiIndex = messages.value.length - 1
   try {
-    await stopReply(apis, lastUserMessage.value, sessionStorage.getItem('username') || '')
+    await stopMessage(apis, lastUserMessage.value)
     const msgs = [...messages.value]
     if (msgs[aiIndex]) {
-      msgs[aiIndex] = { ...msgs[aiIndex], content: msgs[aiIndex].content || '停止回答', status: STATUS.STOP }
+      msgs[aiIndex] = { ...msgs[aiIndex], content: msgs[aiIndex].content || '已停止回答', status: STATUS.STOP }
     }
     messages.value = msgs
     isGenerating.value = false
@@ -344,7 +370,6 @@ onMounted(async () => {
   }
 })
 
-// Scroll listener
 let scrollHandler: (() => void) | null = null
 onMounted(() => {
   if (chatBoxRef.value) {

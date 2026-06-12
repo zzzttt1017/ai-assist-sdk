@@ -19,7 +19,7 @@
       "types": "./dist/vue/index.d.ts",
       "import": "./dist/vue/index.mjs"
     },
-    "./styles": "./dist/style.css"
+    "./styles": "./dist/ai-assist-sdk.css"
   },
   "files": [
     "dist"
