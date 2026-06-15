@@ -23,8 +23,7 @@ try {
   initAiAssist({
     name: '财务AI员工',
     baseUrl: '/API',
-    token: 'your-token-here',
-    appKey: 'd0rs4ajbg4roompa2h9g',
+    token: import.meta.env.VITE_DEV_TOKEN || 'YOUR_TOKEN_HERE',
     defaultSayhello: {
       text1: 'Hi~ 我是财务助手!',
       text2: '可以为你答疑解惑，助你轻松工作，多点生活',

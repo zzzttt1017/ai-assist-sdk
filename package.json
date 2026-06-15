@@ -25,8 +25,8 @@
     "dist"
   ],
   "scripts": {
-    "dev": "vite --open /",
-    "dev:vue": "vite --open /index-vue.html",
+    "dev": "vite --host --open /",
+    "dev:vue": "vite --host --open /index-vue.html",
     "build": "vite build",
     "build:lib": "vite build --mode lib",
     "preview": "vite preview"
