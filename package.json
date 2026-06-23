@@ -19,7 +19,10 @@
       "types": "./dist/vue/index.d.ts",
       "import": "./dist/vue/index.mjs"
     },
-    "./styles": "./dist/ai-assist-sdk.css"
+    "./styles": {
+      "types": "./styles.d.ts",
+      "default": "./dist/ai-assist-sdk.css"
+    }
   },
   "license": "MIT",
   "repository": {
@@ -30,7 +33,8 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "styles.d.ts"
   ],
   "scripts": {
     "dev": "vite --host --open /",
