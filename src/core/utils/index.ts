@@ -102,4 +102,4 @@ export const parseSSEData = (sseData: string): string => {
   return markdownContent
 }
 
-export { renderMarkdown } from './markdown'
+export { renderMarkdown, preprocessStreamingMarkdown } from './markdown'

@@ -4,6 +4,8 @@ export type {
   ViewStatus,
   MessageStatus,
   ChatMessage,
+  ConversationItem,
+  ConversationMessageItem,
   HistoryItem,
   PersonalInfo,
 } from './core/types'

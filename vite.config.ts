@@ -32,6 +32,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // 运行时编译内联 template 需要带编译器的 Vue 构建
+      vue: 'vue/dist/vue.esm-bundler.js',
     },
   },
   css: {
@@ -68,7 +70,7 @@ export default defineConfig(({ mode }) => ({
           formats: ['es'],
         },
         rollupOptions: {
-          external: ['react', 'react-dom', 'vue', 'antd', '@ant-design/icons'],
+          external: ['react', 'react-dom', 'vue', 'antd', '@ant-design/icons', 'react-markdown', 'remark-gfm', 'rehype-highlight'],
           output: {
             globals: {
               react: 'React',
@@ -76,6 +78,9 @@ export default defineConfig(({ mode }) => ({
               vue: 'Vue',
               antd: 'antd',
               '@ant-design/icons': 'antdIcons',
+              'react-markdown': 'ReactMarkdown',
+              'remark-gfm': 'remarkGfm',
+              'rehype-highlight': 'rehypeHighlight',
             },
             entryFileNames: '[name].mjs',
             chunkFileNames: 'chunks/[name]-[hash].mjs',

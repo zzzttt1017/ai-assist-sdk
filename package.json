@@ -45,7 +45,10 @@
   "peerDependencies": {
     "react": ">=17.0.0",
     "react-dom": ">=17.0.0",
-    "vue": ">=3.0.0"
+    "vue": ">=3.0.0",
+    "react-markdown": ">=9.0.0",
+    "remark-gfm": ">=4.0.0",
+    "rehype-highlight": ">=7.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -55,6 +58,15 @@
       "optional": true
     },
     "vue": {
+      "optional": true
+    },
+    "react-markdown": {
+      "optional": true
+    },
+    "remark-gfm": {
+      "optional": true
+    },
+    "rehype-highlight": {
       "optional": true
     }
   },

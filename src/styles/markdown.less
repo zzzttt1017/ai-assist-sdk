@@ -158,6 +158,28 @@
       top: 9px;
       right: 10px;
       cursor: pointer;
+      background: none;
+      border: none;
+      padding: 2px 8px;
+      border-radius: 3px;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.15);
+      }
+    }
+
+    pre .code-lang {
+      color: #999;
+      position: absolute;
+      font-size: 12px;
+      top: 9px;
+      left: 14px;
+      font-family: source-code-pro, Menlo, Monaco, Consolas, Courier New, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      pointer-events: none;
     }
 
     pre:before {
@@ -199,6 +221,89 @@
     ol li, ul li {
       line-height: 1.6;
       margin: 0.5em 0;
+    }
+
+    // 流式输出光标动画
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background-color: #5ba0a9;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      border-radius: 1px;
+      animation: streaming-blink 1s step-end infinite;
+    }
+
+    @keyframes streaming-blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    // 深度思考区块
+    .thinking-block {
+      margin-bottom: 8px;
+
+      &--expanded {
+        border: 1px solid #e8e8e8;
+        border-radius: 6px;
+        background: #fafafa;
+        overflow: hidden;
+      }
+    }
+
+    .thinking-block__header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 0;
+      cursor: pointer;
+      user-select: none;
+
+    }
+
+    .thinking-block--expanded {
+      .thinking-block__header{
+        padding: 10px 14px;
+      }
+    }
+
+    .thinking-block__title {
+      font-size: 14px;
+      font-weight: 400;
+      color: #06021d; // 黑紫色
+      
+    }
+
+    .thinking-block__arrow {
+      flex-shrink: 0;
+      transition: transform 0.25s ease, opacity 0.2s;
+      color: #999;
+      opacity: 0;
+
+      .thinking-block__header:hover &,
+      .thinking-block--expanded & {
+        opacity: 1;
+      }
+
+      &--down {
+        transform: rotate(90deg);
+      }
+    }
+
+    .thinking-block__content {
+      padding: 0 14px 10px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #8c8c8c;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .thinking-block__duration {
+      font-size: 12px;
+      color: #bfbfbf;
+      margin-left: auto;
     }
   }
 }

@@ -1,19 +1,63 @@
 import { http, createAuthAxios } from './request'
 import version from './version'
-import type { AiAssistConfig, PersonalInfo } from '@/core/types'
+import type { AiAssistConfig, PersonalInfo, ConversationItem, ConversationMessageItem } from '@/core/types'
+
+// ==================== 响应处理 ====================
+
+/** 统一响应格式 */
+interface ApiResponse<T = any> {
+  code: number
+  msg: string
+  data: T
+}
+
+/** PascalCase → camelCase */
+const toCamelCase = (str: string): string => str.charAt(0).toLowerCase() + str.slice(1)
+
+/** 递归将对象所有 key 从 PascalCase 转为 camelCase */
+const convertKeysToCamelCase = <T = any>(obj: any): T => {
+  if (obj === null || obj === undefined) return obj
+  if (Array.isArray(obj)) return obj.map(convertKeysToCamelCase) as unknown as T
+  if (typeof obj === 'object') {
+    const result: Record<string, any> = {}
+    for (const key of Object.keys(obj)) {
+      result[toCamelCase(key)] = convertKeysToCamelCase(obj[key])
+    }
+    return result as T
+  }
+  return obj
+}
+
+/**
+ * 统一解析响应：校验 code !== 0 则抛错，data 为 JSON 字符串自动反序列化，
+ * 并将所有 key 从 PascalCase 转为 camelCase
+ */
+const parseResponse = <T = any>(response: ApiResponse): T => {
+  if (response.code !== 0) {
+    throw new Error(response.msg || '请求失败')
+  }
+  const rawData = response.data
+  let data: any
+  if (typeof rawData === 'string') {
+    data = JSON.parse(rawData)
+  } else {
+    data = rawData
+  }
+  return convertKeysToCamelCase(data) as T
+}
 
 // ==================== 会话管理 ====================
 
-export const createConversation = async (apis: AiAssistConfig['apis']) => {
+export const createConversation = async (apis: AiAssistConfig['apis']): Promise<{ conversation: ConversationItem } | undefined> => {
   if (!apis.createConversationApi) return
   const result = await http.post(apis.createConversationApi, version({}))
-  return result
+  return parseResponse<{ conversation: ConversationItem }>(result)
 }
 
-export const getConversationList = async (apis: AiAssistConfig['apis']) => {
+export const getConversationList = async (apis: AiAssistConfig['apis']): Promise<{ conversationList: ConversationItem[] } | null> => {
   if (!apis.getConversationListApi) return null
   const result = await http.post(apis.getConversationListApi, version({}))
-  return result
+  return parseResponse<{ conversationList: ConversationItem[] }>(result)
 }
 
 export const deleteConversation = async (
@@ -21,22 +65,23 @@ export const deleteConversation = async (
   appConversationId: string
 ) => {
   if (!apis.deleteConversationApi) return
-  await http.post(apis.deleteConversationApi, version({
+  const result = await http.post(apis.deleteConversationApi, version({
     AppConversationID: appConversationId,
   }))
+  parseResponse(result)
 }
 
 export const getConversationMessages = async (
   apis: AiAssistConfig['apis'],
   appConversationId: string
-) => {
+): Promise<{ messages: ConversationMessageItem[] } | null> => {
   if (!apis.getConversationMessagesApi) return null
   const authAxios = createAuthAxios()
   const res = await authAxios.post(apis.getConversationMessagesApi, version({
     AppConversationID: appConversationId,
     Limit: 100,
   }))
-  return res.data
+  return parseResponse<{ messages: ConversationMessageItem[] }>(res.data)
 }
 
 // ==================== 对话 ====================
@@ -52,7 +97,7 @@ export const chatQuery = async (
     Query: query,
     AppConversationID: appConversationId,
   }))
-  return res.data
+  return parseResponse(res.data)
 }
 
 /** 停止回复 */
@@ -61,17 +106,18 @@ export const stopMessage = async (
   messageId: string,
 ) => {
   if (!apis.stopMessageApi) return
-  await http.post(apis.stopMessageApi, version({
+  const result = await http.post(apis.stopMessageApi, version({
     MessageID: messageId,
   }))
+  parseResponse(result)
 }
 
 // ==================== 其他 ====================
 
 export const getSuggestedQuestions = async (apis: AiAssistConfig['apis']) => {
   if (!apis.getSuggestedQuestionsApi) return null
-  const res = await http.post(apis.getSuggestedQuestionsApi, version({}))
-  return res
+  const result = await http.post(apis.getSuggestedQuestionsApi, version({}))
+  return parseResponse(result)
 }
 
 export const getMessageInfo = async (
@@ -79,20 +125,20 @@ export const getMessageInfo = async (
   messageId: string
 ) => {
   if (!apis.getMessageInfoApi) return null
-  const res = await http.post(apis.getMessageInfoApi, version({
+  const result = await http.post(apis.getMessageInfoApi, version({
     MessageID: messageId,
   }))
-  return res?.data
+  return parseResponse(result)
 }
 
 export const getAppConfig = async (apis: AiAssistConfig['apis']) => {
   if (!apis.getAppConfigApi) return null
-  const res = await http.post(apis.getAppConfigApi, version({}))
-  return res?.data
+  const result = await http.post(apis.getAppConfigApi, version({}))
+  return parseResponse(result)
 }
 
 export const getPersonalInfo = async (apis: AiAssistConfig['apis']): Promise<PersonalInfo | null> => {
   if (!apis.getPersonalInfoApi) return null
-  const res = await http.post(apis.getPersonalInfoApi, version({}))
-  return res?.data
+  const result = await http.post(apis.getPersonalInfoApi, version({}))
+  return parseResponse<PersonalInfo>(result)
 }

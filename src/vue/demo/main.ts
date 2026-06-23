@@ -28,6 +28,7 @@ try {
       text1: 'Hi~ 我是财务助手!',
       text2: '可以为你答疑解惑，助你轻松工作，多点生活',
     },
+    app: 6,
     apis: {
       chatQueryApi: '/hi-agent/chatQuery',
       chatQueryStreamApi: '/hi-agent/chatQueryStream',
