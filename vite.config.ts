@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => ({
           formats: ['es'],
         },
         rollupOptions: {
-          external: ['react', 'react-dom', 'vue', 'antd', '@ant-design/icons', 'react-markdown', 'remark-gfm', 'rehype-highlight'],
+          external: ['react', 'react-dom', 'vue', 'antd', '@ant-design/icons', '@ant-design/icons-vue', 'react-markdown', 'remark-gfm', 'rehype-highlight'],
           output: {
             globals: {
               react: 'React',
@@ -78,6 +78,7 @@ export default defineConfig(({ mode }) => ({
               vue: 'Vue',
               antd: 'antd',
               '@ant-design/icons': 'antdIcons',
+              '@ant-design/icons-vue': 'antdIconsVue',
               'react-markdown': 'ReactMarkdown',
               'remark-gfm': 'remarkGfm',
               'rehype-highlight': 'rehypeHighlight',

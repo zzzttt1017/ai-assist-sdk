@@ -91,26 +91,81 @@
       .agent-thought {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin-bottom: 8px;
+        gap: 5px;
+        padding: 0 0 0 5px;
         font-size: 13px;
-        line-height: 1.5;
-        color: #6959CD;
+        line-height: 1.4;
+        font-weight: 500;
+        color: #4b5563;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
         &__icon {
           flex-shrink: 0;
           opacity: 0.7;
         }
 
+        &__spinner {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: auto;
+          height: 14px;
+          flex-shrink: 0;
+        }
+
         &__text {
-          font-weight: 600;
+          font-weight: 500;
         }
 
         &__duration {
           font-size: 11px;
-          opacity: 0.7;
-          margin-left: 4px;
+          color: #9ca3af;
+          margin-left: 2px;
+          font-variant-numeric: tabular-nums;
+          font-weight: 400;
         }
+
+        // 进行中：图标脉冲旋转
+        &:not(.agent-thought--done) {
+          .agent-thought__spinner svg {
+            // animation: agent-wobble 5s linear infinite;
+          }
+          .agent-thought__text {
+            animation: agent-text-shimmer 2s linear infinite;
+          }
+        }
+
+        // 已完成：静态、绿色调
+        &--done {
+          // background: #f0fdf4;
+          // border-color: #d1fae5;
+          color: #4b5563;
+
+          .agent-thought__spinner {
+            // background: #10b981;
+          }
+          .agent-thought__text {
+            // -webkit-text-fill-color: #15803d;
+          }
+        }
+      }
+
+      // @keyframes agent-wobble {
+      //   0%   { transform: translate(0, 0); }
+      //   10%  { transform: translate(-2px, 2px); }   /* 左下 */
+      //   20%  { transform: translate(-2px, -2px); }  /* 左上 */
+      //   30%  { transform: translate(2px, -2px); }   /* 右上 */
+      //   40%  { transform: translate(2px, 2px); }    /* 右下 */
+      //   50%  { transform: translate(0, 0); }        /* 中间 */
+      //   60%  { transform: translate(2px, 2px); }    /* 右下（回）*/
+      //   70%  { transform: translate(2px, -2px); }   /* 右上（回）*/
+      //   80%  { transform: translate(-2px, -2px); }  /* 左上（回）*/
+      //   90%  { transform: translate(-2px, 2px); }   /* 左下（回）*/
+      //   100% { transform: translate(0, 0); }        /* 中间 */
+      // }
+      @keyframes agent-text-shimmer {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 200% 0%; }
       }
 
       .message-cost {

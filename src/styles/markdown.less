@@ -242,68 +242,171 @@
 
     // 深度思考区块
     .thinking-block {
-      margin-bottom: 8px;
+      overflow: hidden;
+      position: relative;
 
+      // 思考中：呼吸光晕
+      &--active {
+        border-color: #e0e7ff;
+        border-radius: 12px;
+        // box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.4);
+        // animation: thinking-breath 2s ease-in-out infinite;
+
+        &::before {
+          opacity: 1;
+        }
+        .thinking-block__title {
+          background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #6366f1 100%);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: thinking-text-shimmer 2s linear infinite;
+        }
+        .thinking-block__indicator {
+          background: linear-gradient(135deg, #6366f1, #a855f7);
+          animation: thinking-dot-pulse 1.4s ease-in-out infinite;
+        }
+      }
+
+      // 已完成展开：静态淡灰
       &--expanded {
-        border: 1px solid #e8e8e8;
-        border-radius: 6px;
-        background: #fafafa;
-        overflow: hidden;
+        border-color: #e5e7eb;
+        box-shadow: none;
+        animation: none;
+
+        &::before {
+          opacity: 0.35;
+        }
+        .thinking-block__indicator {
+          background: #9ca3af;
+        }
+      }
+
+      &--active.thinking-block--expanded {
+        animation: none;
+        box-shadow: none;
+      }
+
+      &:hover{
+        .thinking-block__arrow{
+          opacity: 1;
+        }
       }
     }
 
     .thinking-block__header {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 0;
+      gap: 8px;
+      padding: 0 12px 0 8px;
       cursor: pointer;
       user-select: none;
-
     }
 
-    .thinking-block--expanded {
-      .thinking-block__header{
-        padding: 10px 14px;
-      }
+    .thinking-block__indicator {
+      flex-shrink: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #9ca3af;
+      transition: background 0.3s;
     }
 
     .thinking-block__title {
-      font-size: 14px;
-      font-weight: 400;
-      color: #06021d; // 黑紫色
-      
-    }
-
-    .thinking-block__arrow {
-      flex-shrink: 0;
-      transition: transform 0.25s ease, opacity 0.2s;
-      color: #999;
-      opacity: 0;
-
-      .thinking-block__header:hover &,
-      .thinking-block--expanded & {
-        opacity: 1;
-      }
-
-      &--down {
-        transform: rotate(90deg);
-      }
-    }
-
-    .thinking-block__content {
-      padding: 0 14px 10px;
       font-size: 13px;
-      line-height: 1.7;
-      color: #8c8c8c;
-      white-space: pre-wrap;
-      word-break: break-word;
+      font-weight: 500;
+      color: #4b5563;
+      letter-spacing: 0.1px;
     }
 
     .thinking-block__duration {
       font-size: 12px;
-      color: #bfbfbf;
+      color: #9ca3af;
       margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      font-weight: 400;
+    }
+
+    .thinking-block__arrow {
+      flex-shrink: 0;
+      color: #9ca3af;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+      opacity: 0;
+
+      &--down {
+        transform: rotate(180deg);
+      }
+    }
+
+    .thinking-block__content {
+      padding: 10px 14px 12px 14px;
+      background: #fafafa;
+      font-size: 13px;
+      line-height: 1.75;
+      color: #6b7280;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-top: 1px dashed #f0f0f0;
+      margin-top: 2px;
+      border-radius: 0 8px 8px 0;
+      overflow: hidden;
+      position: relative;
+
+      // 渐变左边框（高亮条）
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #818cf8 0%, #c084fc 100%);
+        opacity: 0.5;
+        transition: opacity 0.3s;
+      }
+    }
+
+    // 展开过渡动画
+    .thinking-expand-enter-active,
+    .thinking-expand-leave-active {
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+    .thinking-expand-enter-from,
+    .thinking-expand-leave-to {
+      opacity: 0;
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .thinking-expand-enter-to,
+    .thinking-expand-leave-from {
+      opacity: 1;
+      max-height: 1000px;
+    }
+
+    @keyframes thinking-breath {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(129, 140, 248, 0);
+      }
+      50% {
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.08);
+      }
+    }
+    @keyframes thinking-text-shimmer {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 200% 0%; }
+    }
+    @keyframes thinking-dot-pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.3);
+        opacity: 0.7;
+      }
     }
   }
 }

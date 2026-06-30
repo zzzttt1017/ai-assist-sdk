@@ -141,12 +141,15 @@ const ThinkingBlock: React.FC<{
   if (!content) return null
 
   return (
-    <div className={`thinking-block ${expanded ? 'thinking-block--expanded' : ''}`}>
+    <div
+      className={`thinking-block ${expanded ? 'thinking-block--expanded' : ''} ${isStreaming ? 'thinking-block--active' : ''}`}
+    >
       <div className="thinking-block__header" onClick={() => setExpanded(!expanded)}>
+        <span className="thinking-block__indicator" />
         <span className="thinking-block__title">
-          {isStreaming ? '深度思考中' : '已深度思考'}
+          {isStreaming ? '深度思考中' : '深度思考'}
         </span>
-        <svg className={`thinking-block__arrow ${expanded ? 'thinking-block__arrow--down' : ''}`} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className={`thinking-block__arrow ${expanded ? 'thinking-block__arrow--down' : ''}`} viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </div>
@@ -159,16 +162,18 @@ const ThinkingBlock: React.FC<{
   )
 }
 
-/** 智能体/工具调用状态条 — 极简展示 */
+/** 智能体/工具调用状态条 */
 const AgentThoughtBlock: React.FC<{ isDone?: boolean }> = ({ isDone }) => {
   return (
-    <div className="agent-thought">
-      <svg className="agent-thought__icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="11" cy="11" r="7" />
-        <line x1="16.5" y1="16.5" x2="21" y2="21" />
-      </svg>
+    <div className={`agent-thought ${isDone ? 'agent-thought--done' : ''}`}>
+      <span className="agent-thought__spinner">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="16.5" y1="16.5" x2="21" y2="21" />
+        </svg>
+      </span>
       <span className="agent-thought__text">
-        {isDone ? '搜索信息完成' : '搜索信息中…'}
+        {isDone ? '工具调用' : '工具调用中'}
       </span>
     </div>
   )
@@ -356,6 +361,42 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
       })
     }
 
+    /**
+     * 关闭所有未结束的 thinking segment（duration == null）。
+     * 在"回答开始"时调用 —— 语义上"开始回答 = 前序思考阶段结束"。
+     * 解决 think_message 与 message 穿插时，第一段思考因缺少 think_message_output_end
+     * 而永远停留在"思考中"的问题。
+     */
+    const closeOpenThinking = () => {
+      const segs = segmentsRef.current.get(aiIndex) || []
+      const startTime = thinkingStartTimeRef.current.get(aiIndex)
+      let closedDuration = 0
+      let closed = false
+      segs.forEach((s) => {
+        if (s.type === 'thinking' && s.duration == null) {
+          const d = startTime
+            ? Math.round(((Date.now() - startTime) / 1000) * 10) / 10
+            : 0
+          s.duration = d
+          closedDuration += d
+          closed = true
+        }
+      })
+      if (!closed) return
+      segmentsRef.current.set(aiIndex, segs)
+      batchSetMessages(prev => {
+        const updated = [...prev]
+        if (updated[aiIndex]) {
+          updated[aiIndex] = {
+            ...updated[aiIndex],
+            segments: segs.map(s => ({ ...s })),
+            thinkingDuration: (updated[aiIndex].thinkingDuration || 0) + closedDuration,
+          }
+        }
+        return updated
+      })
+    }
+
     try {
       const fullUrl = cfg.baseUrl.replace(/\/+$/, '') + '/' + apiUrl.replace(/^\/+/, '')
       await fetchEventSource(fullUrl, {
@@ -514,6 +555,8 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
 
               case 'message_output_start':
                 currentSegTypeRef.current.set(aiIndex, 'answer')
+                // 回答开始 = 前序未结束的思考阶段结束
+                closeOpenThinking()
                 break
 
               case 'message': {
@@ -525,6 +568,8 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
                 if (curType === 'answer' && last && last.type === 'answer') {
                   last.content += answerText
                 } else {
+                  // 即将新建 answer segment —— 先关闭未结束的 thinking（兜底，防后端不发 message_output_start）
+                  closeOpenThinking()
                   currentSegTypeRef.current.set(aiIndex, 'answer')
                   segs.push({ type: 'answer', content: answerText })
                 }
@@ -629,6 +674,9 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
           }
         },
         onclose() {
+          flushBatch()
+          // 连接关闭时，关闭尚未结束的 thinking segment（防止中断后卡在"思考中"）
+          closeOpenThinking()
           flushBatch()
           const segs = segmentsRef.current.get(aiIndex) || []
           const fullContent = segs.filter(s => s.type === 'answer').map(s => s.content).join('')
