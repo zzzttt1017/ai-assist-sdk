@@ -1,6 +1,6 @@
 {
   "name": "@somecat/ai-assist-sdk",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "type": "module",
   "description": "AI助手 SDK — 支持 React 和 Vue3 的可嵌入AI对话组件",
   "main": "./dist/index.mjs",
