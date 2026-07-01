@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Modal, Button } from 'antd'
 import { getConversationList, deleteConversation } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
+import { showToast } from '@/core/utils'
 import type { HistoryItem } from '@/core/types'
 
 import addImg from '@/assets/image/add.png'
@@ -23,12 +24,16 @@ const History: React.FC<HistoryProps> = ({ onHistoryDetail, onAnswer, onEditTitl
   const [deleteId, setDeleteId] = useState('')
 
   const getList = async () => {
-    const result = await getConversationList(apis)
-    if (result?.conversationList) {
-      const filtered = result.conversationList
-        .filter((item: any) => item !== null)
-        .map((item: any) => ({ ...item, selected: false }))
-      setHistoryList(filtered)
+    try {
+      const result = await getConversationList(apis)
+      if (result?.conversationList) {
+        const filtered = result.conversationList
+          .filter((item: any) => item !== null)
+          .map((item: any) => ({ ...item, selected: false }))
+        setHistoryList(filtered)
+      }
+    } catch (e: any) {
+      showToast(e?.message || '获取历史记录失败')
     }
   }
 
@@ -39,8 +44,13 @@ const History: React.FC<HistoryProps> = ({ onHistoryDetail, onAnswer, onEditTitl
 
   const handleDelete = async () => {
     setCenterDialogVisible(false)
-    await deleteConversation(apis, deleteId)
-    await getList()
+    try {
+      await deleteConversation(apis, deleteId)
+      await getList()
+    } catch (e: any) {
+      showToast(e?.message || '删除失败')
+      await getList()
+    }
   }
 
   const newCreateAconversation = () => {

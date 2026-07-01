@@ -1,7 +1,7 @@
 import { reactive, type Ref } from 'vue'
 import { createAuthAxios } from '@/core/services/request'
 import { createConversation, stopMessage, getConversationMessages } from '@/core/services/api'
-import { processSSEData, parseSSEData } from '@/core/utils'
+import { processSSEData, parseSSEData, showToast } from '@/core/utils'
 import type { ChatMessage, MessageStatus, AiAssistConfig } from '@/core/types'
 
 interface UseChatActionsParams {
@@ -90,8 +90,8 @@ export function useChatActions({
       })
       const contentData = extractContent(res.data)
       messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: contentData, status: STATUS.COMPLETED }]
-    } catch {
-      messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }]
+    } catch (e: any) {
+      messages.value = [...messages.value.slice(0, -1), { type: 'ai', content: e?.message || '服务连接失败，请稍后重试', status: STATUS.ERROR }]
     }
   }
 
@@ -127,10 +127,10 @@ export function useChatActions({
       controllers.again.abort()
       controllers.again = new AbortController()
       issTop.value = true
-    } catch {
+    } catch (e: any) {
       const msgs = [...messages.value]
       if (msgs[aiIndex]) {
-        msgs[aiIndex] = { ...msgs[aiIndex], content: '系统繁忙，请稍后再试', status: STATUS.ERROR }
+        msgs[aiIndex] = { ...msgs[aiIndex], content: e?.message || '系统繁忙，请稍后再试', status: STATUS.ERROR }
       }
       messages.value = msgs
     }
@@ -138,18 +138,26 @@ export function useChatActions({
 
   async function goHistoryMessage(appConversationId: string) {
     conversationId.value = appConversationId
-    const res = await getConversationMessages(apis, appConversationId)
-    const contentData = res?.messages?.[0]?.answerInfo?.answer
-    if (contentData) {
-      messages.value = [...messages.value, { type: 'ai', content: contentData, status: STATUS.COMPLETED }]
+    try {
+      const res = await getConversationMessages(apis, appConversationId)
+      const contentData = res?.messages?.[0]?.answerInfo?.answer
+      if (contentData) {
+        messages.value = [...messages.value, { type: 'ai', content: contentData, status: STATUS.COMPLETED }]
+      }
+    } catch (e: any) {
+      showToast(e?.message || '加载历史会话失败')
     }
   }
 
   /** 创建新会话，返回 appConversationID */
   async function initConversation() {
-    const result = await createConversation(apis)
-    if (result?.conversation?.appConversationID) {
-      conversationId.value = result.conversation.appConversationID
+    try {
+      const result = await createConversation(apis)
+      if (result?.conversation?.appConversationID) {
+        conversationId.value = result.conversation.appConversationID
+      }
+    } catch (e: any) {
+      showToast(e?.message || '创建会话失败')
     }
   }
 

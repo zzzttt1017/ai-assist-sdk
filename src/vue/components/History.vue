@@ -43,6 +43,7 @@
 import { ref, onMounted } from 'vue'
 import { getConversationList, deleteConversation } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
+import { showToast } from '@/core/utils'
 import type { HistoryItem } from '@/core/types'
 
 import addsImg from '@/assets/image/adds.png'
@@ -60,11 +61,15 @@ const dialogVisible = ref(false)
 const deleteId = ref('')
 
 async function getList() {
-  const result = await getConversationList(apis)
-  if (result?.conversationList) {
-    historyList.value = result.conversationList
-      .filter((item: any) => item !== null)
-      .map((item: any) => ({ ...item, selected: false }))
+  try {
+    const result = await getConversationList(apis)
+    if (result?.conversationList) {
+      historyList.value = result.conversationList
+        .filter((item: any) => item !== null)
+        .map((item: any) => ({ ...item, selected: false }))
+    }
+  } catch (e: any) {
+    showToast(e?.message || '获取历史记录失败')
   }
 }
 
@@ -75,8 +80,13 @@ function handleClear(id: string) {
 
 async function handleDelete() {
   dialogVisible.value = false
-  await deleteConversation(apis, deleteId.value)
-  await getList()
+  try {
+    await deleteConversation(apis, deleteId.value)
+    await getList()
+  } catch (e: any) {
+    showToast(e?.message || '删除失败')
+    await getList()
+  }
 }
 
 onMounted(() => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { getPersonalInfo } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
+import { showToast } from '@/core/utils'
 import type { PersonalInfo } from '@/core/types'
 
 const Info: React.FC = () => {
@@ -9,8 +10,12 @@ const Info: React.FC = () => {
 
   useEffect(() => {
     const fetchInfo = async () => {
-      const data = await getPersonalInfo(cfg.apis)
-      setInfo(data)
+      try {
+        const data = await getPersonalInfo(cfg.apis)
+        setInfo(data)
+      } catch (e: any) {
+        showToast(e?.message || '获取个人信息失败')
+      }
     }
     fetchInfo()
   }, [])

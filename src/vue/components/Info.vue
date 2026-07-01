@@ -44,12 +44,17 @@
 import { ref, onMounted } from 'vue'
 import { getPersonalInfo } from '@/core/services/api'
 import { getConfig } from '@/core/services/request'
+import { showToast } from '@/core/utils'
 import type { PersonalInfo } from '@/core/types'
 
 const cfg = getConfig()
 const info = ref<PersonalInfo | null>(null)
 
 onMounted(async () => {
-  info.value = await getPersonalInfo(cfg.apis)
+  try {
+    info.value = await getPersonalInfo(cfg.apis)
+  } catch (e: any) {
+    showToast(e?.message || '获取个人信息失败')
+  }
 })
 </script>

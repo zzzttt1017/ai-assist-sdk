@@ -367,4 +367,52 @@
 
     .info:first-child { margin: 0; }
   }
+
+  // ============================================================
+  // Toast 轻量提示（接口错误等）
+  // ============================================================
+  .ai-assist-toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100001;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+
+    .ai-assist-toast {
+      max-width: 80vw;
+      min-width: 120px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 20px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.78);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      word-break: break-all;
+      pointer-events: auto;
+
+      &--visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      &--error {
+        background: rgba(245, 63, 63, 0.92);
+      }
+      &--success {
+        background: rgba(82, 196, 26, 0.92);
+      }
+      &--info {
+        background: rgba(0, 0, 0, 0.78);
+      }
+    }
+  }
 }

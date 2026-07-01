@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { getConfig, createAuthAxios } from '@/core/services/request'
 import { createConversation, stopMessage, getConversationMessages } from '@/core/services/api'
-import { useClipboard, statusText, formatQuestions, textError, processSSEData, parseSSEData, preprocessStreamingMarkdown, renderMarkdown } from '@/core/utils'
+import { useClipboard, statusText, formatQuestions, textError, processSSEData, parseSSEData, preprocessStreamingMarkdown, renderMarkdown, showToast } from '@/core/utils'
 import type { ChatMessage, MessageStatus, AiAssistConfig, MessageSegment, MessageCost } from '@/core/types'
 
 import refreshImg from '@/assets/image/refresh.png'
@@ -264,14 +264,18 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
   useImperativeHandle(ref, () => ({
     goHistoryMessage: async (appConversationId: string) => {
       conversationIdRef.current = appConversationId
-      const res = await getConversationMessages(apis, appConversationId)
-      const contentData = res?.messages?.[0]?.answerInfo?.answer
-      if (contentData) {
-        setMessages(prev => [...prev, {
-          type: 'ai',
-          content: contentData,
-          status: STATUS.COMPLETED,
-        }])
+      try {
+        const res = await getConversationMessages(apis, appConversationId)
+        const contentData = res?.messages?.[0]?.answerInfo?.answer
+        if (contentData) {
+          setMessages(prev => [...prev, {
+            type: 'ai',
+            content: contentData,
+            status: STATUS.COMPLETED,
+          }])
+        }
+      } catch (e: any) {
+        showToast(e?.message || '加载历史会话失败')
       }
     }
   }))
@@ -304,9 +308,13 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
 
   useEffect(() => {
     const init = async () => {
-      const result = await createConversation(apis)
-      if (result?.conversation?.appConversationID) {
-        conversationIdRef.current = result.conversation.appConversationID
+      try {
+        const result = await createConversation(apis)
+        if (result?.conversation?.appConversationID) {
+          conversationIdRef.current = result.conversation.appConversationID
+        }
+      } catch (e: any) {
+        showToast(e?.message || '创建会话失败')
       }
     }
     init()
@@ -764,10 +772,10 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
         updated[aiIndex] = { type: 'ai', content: contentData, status: STATUS.COMPLETED }
         return updated
       })
-    } catch {
+    } catch (e: any) {
       setMessages(prev => {
         const updated = [...prev]
-        updated[aiIndex] = { type: 'ai', content: '服务连接失败，请稍后重试', status: STATUS.ERROR }
+        updated[aiIndex] = { type: 'ai', content: e?.message || '服务连接失败，请稍后重试', status: STATUS.ERROR }
         return updated
       })
     }
@@ -826,11 +834,11 @@ const Answer = forwardRef<AnswerRef, AnswerProps>(({ defaultSayhello, defaultRec
       controllersRef.current.again.abort()
       controllersRef.current.again = new AbortController()
       issTopRef.current = true
-    } catch {
+    } catch (e: any) {
       setMessages(prev => {
         const updated = [...prev]
         if (updated[aiIndex]) {
-          updated[aiIndex] = { ...updated[aiIndex], content: '系统繁忙，请稍后再试', status: STATUS.ERROR }
+          updated[aiIndex] = { ...updated[aiIndex], content: e?.message || '系统繁忙，请稍后再试', status: STATUS.ERROR }
         }
         return updated
       })
