@@ -14,13 +14,15 @@
           >
             <span style="font-size: 18px">←</span>
           </span>
-          <img v-else :src="sparkleImg" @click="viewStatus = 'info'" />
+          <img v-else :src="sparkleImg" />
+          <!-- <img v-else :src="sparkleImg" @click="viewStatus = 'info'" /> -->
         </p>
         <div class="header-title">
           <span>{{ viewStatus === 'info' ? '个人信息' : viewStatus === 'history' ? '历史信息' : cfg.name }}</span>
         </div>
         <p>
-          <img :src="historyImg" class="mute" @click="viewStatus = 'history'" />
+          <PlusOutlined v-show="showNewChat" class="op-icon" @click="handleNewConversation" />
+          <!-- <img :src="historyImg" class="mute" @click="viewStatus = 'history'" /> -->
           <img @click="screenStatus = !screenStatus" :src="screenStatus ? amplifysImg : amplifyImg" />
           <img @click="isAi = false" :src="closeImg" />
         </p>
@@ -75,7 +77,7 @@ import History from './History.vue'
 import Info from './Info.vue'
 import { getConfig } from '@/core/services/request'
 import type { ViewStatus } from '@/core/types'
-
+import {PlusOutlined} from "@ant-design/icons-vue"
 import sparkleImg from '@/assets/image/sparkle.png'
 import historyImg from '@/assets/image/history.png'
 import amplifyImg from '@/assets/image/amplify.png'
@@ -117,6 +119,8 @@ const hoverDirection = computed(() => {
 })
 
 const panelPositionClass = computed(() => screenStatus.value ? '' : `panel-${panelPosition.value}`)
+
+const showNewChat = computed(() => !answerRef.value?.isEmptyConversation)
 
 const characterStyle = computed(() => ({
   left: `${characterPosition.x}px`,
@@ -229,6 +233,13 @@ function handleHistoryDetail(appConversationId: string) {
   viewStatus.value = 'answer'
   nextTick(() => {
     answerRef.value?.goHistoryMessage(appConversationId)
+  })
+}
+
+function handleNewConversation() {
+  viewStatus.value = 'answer'
+  nextTick(() => {
+    answerRef.value?.createNewConversation()
   })
 }
 

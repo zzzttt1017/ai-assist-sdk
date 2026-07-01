@@ -141,7 +141,17 @@ const { sendMessage, regenerateResponse, toggleStop, goHistoryMessage, initConve
   cfg,
 })
 
-defineExpose({ goHistoryMessage })
+/** 新建对话：清空当前消息并重新创建会话 */
+function createNewConversation() {
+  messages.value = []
+  lastUserMessage.value = ''
+  initConversation()
+}
+
+/** 是否处于「已在对话中但无任何内容」的状态（用于隐藏新建对话按钮） */
+const isEmptyConversation = computed(() => !!conversationId.value && messages.value.length === 0)
+
+defineExpose({ goHistoryMessage, createNewConversation, isEmptyConversation })
 
 // ── DOM 引用收集（供代码块增强使用） ──
 const messageRefs = ref(new Map<number, HTMLElement>())
